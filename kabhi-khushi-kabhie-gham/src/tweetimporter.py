@@ -1,5 +1,7 @@
 from twitter import *
 from monkeylearn import MonkeyLearn
+import sys
+import json
  
 
 ml = MonkeyLearn('1f8a83ad2bbb93b4074e4b9e6a2cf5d8acbfe7e4')
@@ -45,16 +47,23 @@ def getSentimentData(user):
 
     d = dict()
     texts = list()
+    first = True
+
+    dates = list()
     for status in results:
         date = status["created_at"]
         splitted = date.split(" ")
         finalDateUSFormat = monthMapping[splitted[1]] + "/" + splitted[2] + "/" + splitted[5]
-        texts.append(str(status["text"].encode("ascii", "ignore"))[2:])
+        if first:
+            texts.append(str(status["text"].encode("ascii", "ignore"))[2:])
+            dates.append(finalDateUSFormat)
+            first = False
 
     sentiments = ml.classifiers.classify(model_id, texts).body
     for i in range(len(sentiments)):
         sentiment = sentiments[i]["classifications"][0]["tag_name"]
-        #print (sentiment)
+        #print (sentiments[i])
+        finalDateUSFormat = dates[i]
         if sentiment.lower() == "positive":
             if finalDateUSFormat in d:
                 cur = d[finalDateUSFormat]
@@ -66,8 +75,10 @@ def getSentimentData(user):
             if finalDateUSFormat in d:
                 cur = d[finalDateUSFormat]
                 d[finalDateUSFormat] = (cur[0], cur[1] + 1)
+            else:
+                d[finalDateUSFormat] = (0, 1)
 
-    return d
+    return json.dumps(d)
 
     
     #result = ml.classifiers.classify(model_id, data)
@@ -75,6 +86,7 @@ def getSentimentData(user):
     #print(result.body)
 
 #getSentimentData("amitjoshi_AJ")
+print(getSentimentData(sys.argv[1]))
 
 
 
