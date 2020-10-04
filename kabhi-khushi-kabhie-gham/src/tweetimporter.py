@@ -8,8 +8,9 @@ app = Flask(__name__)
 
 @app.route('/tweetSentiments')
 def twitterSentimentData():
-    
-    ml = MonkeyLearn('1f8a83ad2bbb93b4074e4b9e6a2cf5d8acbfe7e4')
+    #14d0e773e4f183b82d0cf5ae2622fa90926010d0
+    #ml = MonkeyLearn('1f8a83ad2bbb93b4074e4b9e6a2cf5d8acbfe7e4')
+    ml = MonkeyLearn('14d0e773e4f183b82d0cf5ae2622fa90926010d0')
     model_id = 'cl_pi3C7JiL'
 
     #-----------------------------------------------------------------------
@@ -40,7 +41,7 @@ def twitterSentimentData():
     
     def getSentimentData(user):
         
-        results = twitter.statuses.user_timeline(screen_name = user, count = 200, exclude_replies=True, include_rts=False)
+        results = twitter.statuses.user_timeline(screen_name = user, count = 25, exclude_replies=True, include_rts=False)
 
         #-----------------------------------------------------------------------
         # loop through each status item, and print its content.
@@ -55,7 +56,7 @@ def twitterSentimentData():
             date = status["created_at"]
             splitted = date.split(" ")
             finalDateUSFormat = monthMapping[splitted[1]] + "/" + splitted[2] + "/" + splitted[5]
-            if first:
+            if first or True:
                 texts.append(str(status["text"].encode("ascii", "ignore"))[2:])
                 dates.append(finalDateUSFormat)
                 first = False
