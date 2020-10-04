@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from twitter import *
-from monkeylearn import MonkeyLearn
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import sys
 import json
 
@@ -8,9 +8,8 @@ app = Flask(__name__)
 
 @app.route('/tweetSentiments')
 def twitterSentimentData():
-    #14d0e773e4f183b82d0cf5ae2622fa90926010d0
-    #ml = MonkeyLearn('1f8a83ad2bbb93b4074e4b9e6a2cf5d8acbfe7e4')
-    ml = MonkeyLearn('14d0e773e4f183b82d0cf5ae2622fa90926010d0')
+    analyzer = SentimentIntensityAnalyzer()
+
     model_id = 'cl_pi3C7JiL'
 
     #-----------------------------------------------------------------------
@@ -41,57 +40,73 @@ def twitterSentimentData():
     
     def getSentimentData(user):
         
-        results = twitter.statuses.user_timeline(screen_name = user, count = 25, exclude_replies=True, include_rts=False)
-
-        #-----------------------------------------------------------------------
-        # loop through each status item, and print its content.
-        #-----------------------------------------------------------------------
 
         d = dict()
         texts = list()
         first = True
+
+        results = list()
+        lastId = None
+        while True:
+            #print ("here")
+            if first:
+                first = False
+                results = twitter.statuses.user_timeline(screen_name = user, count = 200, exclude_replies=True, include_rts=False)
+                #print (results)
+                #print (len(results))
+                if len(results) == 1:
+                    break
+
+            else:
+                newResults = twitter.statuses.user_timeline(screen_name = user, count = 200, exclude_replies=True, include_rts=False, max_id = lastId)
+                #print (len(newResults))
+                if len(newResults) == 1:
+                    break
+                results.extend(newResults)
+
+            lastId = results[len(results) - 1]["id"]
 
         dates = list()
         for status in results:
             date = status["created_at"]
             splitted = date.split(" ")
             finalDateUSFormat = monthMapping[splitted[1]] + "/" + splitted[2] + "/" + splitted[5]
-            if first or True:
-                texts.append(str(status["text"].encode("ascii", "ignore"))[2:])
-                dates.append(finalDateUSFormat)
-                first = False
+            text = str(status["text"].encode("ascii", "ignore"))[2:]
+            scores = analyzer.polarity_scores(text)
 
-        sentiments = ml.classifiers.classify(model_id, texts).body
-        for i in range(len(sentiments)):
-            sentiment = sentiments[i]["classifications"][0]["tag_name"]
-            #print (sentiments[i])
-            finalDateUSFormat = dates[i]
-            if sentiment.lower() == "positive":
+            if scores["compound"] > 0.1:
+                sentiment = "positive"
+            elif scores["compound"] < -0.1:
+                sentiment = "negative"
+            else:
+                sentiment = "none"
+            #print (text)
+            #print (sentiment)
+            #print ("------------")
+            if sentiment == "positive":
                 if finalDateUSFormat in d:
                     cur = d[finalDateUSFormat]
                     d[finalDateUSFormat] = (cur[0] + 1, cur[1])
                 else:
                     d[finalDateUSFormat] = (1, 0)
 
-            elif sentiment.lower() == "negative":
+            elif sentiment == "negative":
                 if finalDateUSFormat in d:
                     cur = d[finalDateUSFormat]
                     d[finalDateUSFormat] = (cur[0], cur[1] + 1)
                 else:
-                    d[finalDateUSFormat] = (0, 1)
+                    d[finalDateUSFormat] = (0, 1)            
         
         return jsonify(d)
 
-        #result = ml.classifiers.classify(model_id, data)
-
-        #print(result.body)
-
     args = request.args
-    print(args)
+    #print(args)
     userID = args['id']
-    print(userID)
+    #print(userID)
     return getSentimentData(userID)
 
 
 if __name__ == '__main__':
     app.run()
+
+
