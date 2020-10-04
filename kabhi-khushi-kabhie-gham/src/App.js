@@ -1,59 +1,51 @@
-import React, { useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import Plot from 'react-plotly.js';
 import './App.css';
 
 function App() {
+  const [twitterID, setTwitterID] = useState("twitter");
   const [sentimentData, setSentimentData] = useState([]);
-  
-  /*useEffect(() => {
-    fetch('/tweetSentiments').then(response =>
-      response.json().then(data => {
-        console.log(data);
-      })
-    );
-  }, [])*/
 
   useEffect(() => {
-    /*var trace1 = {
-      x: ['01-01-2020', '02-02-2020', '03-03-2020'],
-      y: [3, 6, 2],
-      name: 'Positive',
-      type: 'bar'
-    };
-    
-    var trace2 = {
-      x: ['01-01-2020', '02-02-2020', '03-03-2020'],
-      y: [2, 5, 7],
-      name: 'Negative',
-      type: 'bar'
-    };
-  
-    setSentimentData([trace1, trace2]);*/
+    fetch(`/tweetSentiments?id=${twitterID}`).then(response =>
+      response.json().then(data => {
+        var dates = [];
+        var posCounts = [];
+        var negCounts = [];
 
-    // code below will call python
-
-    /*
-    var spawn = require("child_process").spawn;
-    var twitterUsername = "amitjoshi_AJ" // fill in with a text field value later
-    var process = spawn('python',["tweetimporter.py", 
-                            twitterUsername] ); 
-    */
-  
-    // Takes stdout data from script which executed 
-    // with arguments and send this data to res object 
-    process.stdout.on('data', function(data) { 
-        // load the json object and populate trace1 and trace2
-        var obj = JSON.parse(data.toString())
-        for (var date in obj) {
-          var val = obj[date]
-          // fill in trace1 and trace2 here
+        for (var date in data) {
+          dates.push(date);
+          posCounts.push(data[date][0]);
+          negCounts.push(data[date][1]);
         }
-        
-    } ) 
-  }, [])
+
+        var posDataObj = {
+          x: dates,
+          y: posCounts,
+          name: 'Positive',
+          type: 'bar'
+        };
+
+        var negDataObj = {
+          x: dates,
+          y: negCounts,
+          name: 'Negative',
+          type: 'bar'
+        };
+
+        setSentimentData([posDataObj, negDataObj]);
+      })
+    );
+  }, [twitterID])
 
   return (
     <div className="App">
+      <form>
+        <label>
+          Twitter ID:
+          <input type="text" name="twitterID" onChange={event => setTwitterID(event.target.value)}/>
+        </label>
+      </form>
 
       <Plot
         data={sentimentData}
